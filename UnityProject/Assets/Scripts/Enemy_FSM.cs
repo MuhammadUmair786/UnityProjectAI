@@ -14,15 +14,16 @@ public class Enemy_FSM : MonoBehaviour
 
     private Health playerHealth;
 
-    public float maxDamage = 10f;
+    public float maxDamage = 5f;
 
     // Enums to keep states
-    public enum ENEMY_STATES { patrol, chase, attack }
+    public enum ENEMY_STATES { patrol, chase, attack, nearToEdge }
 
     
     // We need a property to get the current state
     [SerializeField]
     private ENEMY_STATES currentState;
+
     public ENEMY_STATES CurrentState {
         get 
 		{ 
@@ -41,6 +42,9 @@ public class Enemy_FSM : MonoBehaviour
                 case ENEMY_STATES.attack:
                     StartCoroutine (EnemyAttack ());
                     break;
+				case ENEMY_STATES.nearToEdge:
+                    StartCoroutine (GoNearToEdge ());
+                    break;
             }
         }
     }
@@ -55,15 +59,27 @@ public class Enemy_FSM : MonoBehaviour
     void Start () {
        
         GameObject[] destinations = GameObject.FindGameObjectsWithTag ("Dest");
-        int pathIndex = Random.Range(0, destinations.Length);
+        //int pathIndex = Random.Range(0, destinations.Length);
         patrolDestination = destinations[Random.Range(0,destinations.Length)].GetComponent<Transform>();
-      //  print($"Path: {pathIndex}");
-        CurrentState = ENEMY_STATES.patrol;
+        //CurrentState = ENEMY_STATES.patrol;
+		CurrentState = ENEMY_STATES.nearToEdge;
         
     }
 
+	public IEnumerator GoNearToEdge () {
+        print("Go Near to Edge"); 
+        while (currentState == ENEMY_STATES.nearToEdge) {
+
+			 Vector3[] positionArray = new [] { new Vector3(3,0,404), new Vector3(791,0,404), new Vector3(397,0,6), new Vector3(403,0,797) };
+
+            agent.SetDestination(positionArray[Random.Range(0,positionArray.Length)]);
+			CurrentState = ENEMY_STATES.chase;
+            yield return null;
+        }       
+    }
+
     public IEnumerator EnemyPatrol () {
-        print("Patroling"); 
+        print("Start Patroling"); 
         while (currentState == ENEMY_STATES.patrol) {
             checkMyVision.sensitivity = CheckMyVision.Sensitivity.HIGH;
             agent.isStopped = false;
@@ -81,21 +97,16 @@ public class Enemy_FSM : MonoBehaviour
     }
 
     public IEnumerator EnemyChase () {
-        print("Chasing");
+        print("Chasing Start");
         while (currentState == ENEMY_STATES.chase)
         {
             checkMyVision.sensitivity = CheckMyVision.Sensitivity.LOW;            
             agent.isStopped = false;
 			agent.SetDestination(checkMyVision.lastKnownSighting);
-            //bool destSet = agent.SetDestination(checkMyVision.lastKnownSighting); // zeshan
             while (agent.pathPending)
             {
                 yield return null;
-            }
-            //while (agent.pathPending && agent.path.status == NavMeshPathStatus.PathInvalid){
-                  //print("Path Invalid: " + (agent.path.status == NavMeshPathStatus.PathInvalid));
-                //yield return null;
-            //} //zeeshan        
+            } 
             if (agent.remainingDistance <= agent.stoppingDistance)
             {
                 agent.isStopped = true;
@@ -106,7 +117,6 @@ public class Enemy_FSM : MonoBehaviour
                 }
                 else
                 {
-                    print("Sqwitching to Attack!!!!!");
                     CurrentState = ENEMY_STATES.attack;
 					yield break;
                 }
@@ -128,7 +138,7 @@ public class Enemy_FSM : MonoBehaviour
             }
             if (agent.remainingDistance > agent.stoppingDistance)
             {
-                print("Distance zayada ho gya");
+                print("Distance is increasing now");
                 CurrentState = ENEMY_STATES.patrol;
                 yield break;
             }
@@ -136,33 +146,21 @@ public class Enemy_FSM : MonoBehaviour
             {
                 // Do something
                 playerHealth.HealthPoints -= maxDamage ;
+				Debug.Log("Points reduced! ");
+
+
+				CurrentState = ENEMY_STATES.patrol;
+
                 if(playerHealth.HealthPoints==0)
-                yield break;
-                print("loop ending");
+				{
+					//Application.Quit();
+					UnityEditor.EditorApplication.isPlaying = false;
+					
+					yield break;
+				}
             }
         }
         yield return null;
-
-
-		//zeeshan 
-
-        //print ("Attacking enemy");
-        //while (currentState == ENEMY_STATES.attack) {
-            // agent.isStopped = false;
-            //agent.SetDestination (playerTransform.position);
-            //while (agent.pathPending) {
-                //yield return null;
-            //}
-            //if (agent.remainingDistance > agent.stoppingDistance) {
-                //CurrentState = ENEMY_STATES.chase;
-                //yield break;
-            //} else {
-                // Do something
-                //playerHealth.HealthPoints -= maxDamage * Time.deltaTime;
-            //}
-            //yield return null;
-        //}         
-        //yield break;
     }
 
     // Update is called once per frame
