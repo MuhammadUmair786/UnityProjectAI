@@ -4,5 +4,14 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 1
+    path: Assets/Scenes/MainMenu.unity
+    guid: 2647eba3c5f74004fae86a399809951e
+  - enabled: 1
+    path: Assets/Scenes/Umair.unity
+    guid: 9fc0d4010bbf28b4594072e72b8655ab
+  - enabled: 1
+    path: Assets/Scenes/Uzair.unity
+    guid: a950e7f16a6d87649aa0c550e45f24e0
   m_configObjects: {}

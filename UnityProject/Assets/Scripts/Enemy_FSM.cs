@@ -14,121 +14,128 @@ public class Enemy_FSM : MonoBehaviour
 
     private Health playerHealth;
 
-    public float maxDamage = 5f;
+    public float maxDamage = 10f;
 
     // Enums to keep states
-    public enum ENEMY_STATES { patrol, chase, attack, nearToEdge }
+    public enum ENEMY_STATES { patrol, chase, ATTACK,RageMode,Idle }
 
-    
+
     // We need a property to get the current state
     [SerializeField]
     private ENEMY_STATES currentState;
-
-    public ENEMY_STATES CurrentState {
-        get 
-		{ 
-			return currentState; 
-		}
-        set {
+    public ENEMY_STATES CurrentState
+    {
+        get
+        {
+            return currentState;
+        }
+        set
+        {
             currentState = value;
             StopAllCoroutines();
-            switch (currentState) {
+            switch (currentState)
+            {
                 case ENEMY_STATES.patrol:
-                    StartCoroutine (EnemyPatrol ());
+                    StartCoroutine(EnemyPatrol());
                     break;
                 case ENEMY_STATES.chase:
-                    StartCoroutine (EnemyChase ());
+                    StartCoroutine(EnemyChase());
                     break;
-                case ENEMY_STATES.attack:
-                    StartCoroutine (EnemyAttack ());
+                case ENEMY_STATES.ATTACK:
+                    StartCoroutine(EnemyAttack());
                     break;
-				case ENEMY_STATES.nearToEdge:
-                    StartCoroutine (GoNearToEdge ());
+                case ENEMY_STATES.RageMode:
+                    StartCoroutine(RageMode());
+                    break;
+                case ENEMY_STATES.Idle:
+                    StartCoroutine(Idle());
                     break;
             }
         }
     }
 
-    private void Awake () {
-        checkMyVision = GetComponent<CheckMyVision> ();
-        agent = GetComponent<UnityEngine.AI.NavMeshAgent> ();
-        playerHealth = GameObject.Find("Player").GetComponent<Health> ();
-        playerTransform = playerHealth.GetComponent<Transform> ();
+    private void Awake()
+    {
+        checkMyVision = GetComponent<CheckMyVision>();
+        agent = GetComponent<UnityEngine.AI.NavMeshAgent>();
+        playerHealth = GameObject.Find("Player").GetComponent<Health>();
+        playerTransform = playerHealth.GetComponent<Transform>();
     }
     // Start is called before the first frame update
-    void Start () {
-       
-        GameObject[] destinations = GameObject.FindGameObjectsWithTag ("Dest");
-        //int pathIndex = Random.Range(0, destinations.Length);
-        patrolDestination = destinations[Random.Range(0,destinations.Length)].GetComponent<Transform>();
-        //CurrentState = ENEMY_STATES.patrol;
-		CurrentState = ENEMY_STATES.nearToEdge;
-        
+    void Start()
+    {
+
+        GameObject[] destinations = GameObject.FindGameObjectsWithTag("Dest");
+        int pathIndex = Random.Range(0, destinations.Length);
+        patrolDestination = destinations[Random.Range(0, destinations.Length)].GetComponent<Transform>();
+        //  print($"Path: {pathIndex}");
+        CurrentState = ENEMY_STATES.patrol;
+
     }
 
-	public IEnumerator GoNearToEdge () {
-        print("Go Near to Edge"); 
-        while (currentState == ENEMY_STATES.nearToEdge) {
-
-			 Vector3[] positionArray = new [] { new Vector3(3,0,404), new Vector3(791,0,404), new Vector3(397,0,6), new Vector3(403,0,797) };
-
-            agent.SetDestination(positionArray[Random.Range(0,positionArray.Length)]);
-			CurrentState = ENEMY_STATES.chase;
-            yield return null;
-        }       
-    }
-
-    public IEnumerator EnemyPatrol () {
-        print("Start Patroling"); 
-        while (currentState == ENEMY_STATES.patrol) {
+    public IEnumerator EnemyPatrol()
+    {
+        print("The player Patroling");
+        while (currentState == ENEMY_STATES.patrol)
+        {
             checkMyVision.sensitivity = CheckMyVision.Sensitivity.HIGH;
             agent.isStopped = false;
             agent.SetDestination(patrolDestination.position);
-            while (agent.pathPending ) {              
+            while (agent.pathPending)
+            {
                 yield return null;
             }
-            if (checkMyVision.targetInSight) {
+            if (checkMyVision.targetInSight)
+            {
                 agent.isStopped = true;
                 CurrentState = ENEMY_STATES.chase;
                 yield break;
             }
             yield return null;
-        }       
+        }
     }
 
-    public IEnumerator EnemyChase () {
-        print("Chasing Start");
+    public IEnumerator EnemyChase()
+    {
+        print("Chasing");
         while (currentState == ENEMY_STATES.chase)
         {
-            checkMyVision.sensitivity = CheckMyVision.Sensitivity.LOW;            
+            checkMyVision.sensitivity = CheckMyVision.Sensitivity.LOW;
             agent.isStopped = false;
-			agent.SetDestination(checkMyVision.lastKnownSighting);
+            agent.SetDestination(checkMyVision.lastKnownSighting);
+            //bool destSet = agent.SetDestination(checkMyVision.lastKnownSighting); // zeshan
             while (agent.pathPending)
             {
                 yield return null;
-            } 
+            }
+            //while (agent.pathPending && agent.path.status == NavMeshPathStatus.PathInvalid){
+            //print("Path Invalid: " + (agent.path.status == NavMeshPathStatus.PathInvalid));
+            //yield return null;
+            //} //zeeshan        
             if (agent.remainingDistance <= agent.stoppingDistance)
             {
                 agent.isStopped = true;
                 if (!checkMyVision.targetInSight)
                 {
                     CurrentState = ENEMY_STATES.patrol;
-                   yield break;
+                    yield break;
                 }
                 else
                 {
-                    CurrentState = ENEMY_STATES.attack;
-					yield break;
+                    print("Switching to Attack!!!!!");
+                    CurrentState = ENEMY_STATES.ATTACK;
+                    yield break;
                 }
             }
             yield return null;
-        }       
+        }
     }
 
-    public IEnumerator EnemyAttack () {
+    public IEnumerator EnemyAttack()
+    {
 
-		 print("Attacking enemy");
-        while (currentState == ENEMY_STATES.attack)
+        print("Attacking enemy");
+        while (currentState == ENEMY_STATES.ATTACK)
         {
             agent.isStopped = false;
             agent.SetDestination(playerTransform.position);
@@ -138,33 +145,98 @@ public class Enemy_FSM : MonoBehaviour
             }
             if (agent.remainingDistance > agent.stoppingDistance)
             {
-                print("Distance is increasing now");
+                print("Distance zayada ho gya");
                 CurrentState = ENEMY_STATES.patrol;
                 yield break;
             }
             else
             {
                 // Do something
-                playerHealth.HealthPoints -= maxDamage ;
-				Debug.Log("Points reduced! ");
-
-
-				CurrentState = ENEMY_STATES.patrol;
-
-                if(playerHealth.HealthPoints==0)
-				{
-					//Application.Quit();
-					UnityEditor.EditorApplication.isPlaying = false;
-					
-					yield break;
-				}
+                playerHealth.HealthPoints -= maxDamage;
+                if (playerHealth.HealthPoints == 0)
+                    yield break;
+                print("loop ending");
             }
         }
         yield return null;
+
     }
 
+    public IEnumerator RageMode()
+    {
+        print("Chasing");
+        while (currentState == ENEMY_STATES.RageMode)
+        {
+            checkMyVision.sensitivity = CheckMyVision.Sensitivity.LOW;
+            agent.isStopped = false;
+            agent.SetDestination(checkMyVision.lastKnownSighting);
+            //bool destSet = agent.SetDestination(checkMyVision.lastKnownSighting); // zeshan
+            while (agent.pathPending)
+            {
+                yield return null;
+            }
+            //while (agent.pathPending && agent.path.status == NavMeshPathStatus.PathInvalid){
+            //print("Path Invalid: " + (agent.path.status == NavMeshPathStatus.PathInvalid));
+            //yield return null;
+            //} //zeeshan        
+            if (agent.remainingDistance <= agent.stoppingDistance)
+            {
+                agent.isStopped = true;
+                if (!checkMyVision.targetInSight)
+                {
+                    CurrentState = ENEMY_STATES.patrol;
+                    yield break;
+                }
+                else
+                {
+                    print("Switching to Attack!!!!!");
+                    CurrentState = ENEMY_STATES.ATTACK;
+                    yield break;
+                }
+            }
+            yield return null;
+        }
+    }
+    public IEnumerator Idle()
+    {
+        print("Chasing");
+        while (currentState == ENEMY_STATES.Idle)
+        {
+            checkMyVision.sensitivity = CheckMyVision.Sensitivity.LOW;
+            agent.isStopped = false;
+            agent.SetDestination(checkMyVision.lastKnownSighting);
+            //bool destSet = agent.SetDestination(checkMyVision.lastKnownSighting); // zeshan
+            while (agent.pathPending)
+            {
+                yield return null;
+            }
+            //while (agent.pathPending && agent.path.status == NavMeshPathStatus.PathInvalid){
+            //print("Path Invalid: " + (agent.path.status == NavMeshPathStatus.PathInvalid));
+            //yield return null;
+            //} //zeeshan        
+            if (agent.remainingDistance <= agent.stoppingDistance)
+            {
+                agent.isStopped = true;
+                if (!checkMyVision.targetInSight)
+                {
+                    CurrentState = ENEMY_STATES.patrol;
+                    yield break;
+                }
+                else
+                {
+                    print("Switching to Attack!!!!!");
+                    CurrentState = ENEMY_STATES.ATTACK;
+                    yield break;
+                }
+            }
+            yield return null;
+        }
+    }
+
+
     // Update is called once per frame
-    void Update () {
+    void Update()
+    {
 
     }
 }
