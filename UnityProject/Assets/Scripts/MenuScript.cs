@@ -12,9 +12,7 @@ public class MenuScript : MonoBehaviour
 		Debug.Log("End Game!");
 		Application.Quit();
 	}
-	public void UzairGame(){
-		SceneManager.LoadScene(2);
-	}
+	
 	
 	
 }
