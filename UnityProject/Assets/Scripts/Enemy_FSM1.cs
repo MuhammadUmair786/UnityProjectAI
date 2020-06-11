@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
-public class Enemy_FSM : MonoBehaviour
+public class Enemy_FSM1 : MonoBehaviour
 
 {
     private CheckMyVision checkMyVision;
